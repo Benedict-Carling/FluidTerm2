@@ -25,13 +25,19 @@
 
 #include "serial.h"
 #include "port.h"
+#ifdef _WIN32
 #include <../windows/SerialPort.h>
-
-// static uint32_t saved_baudrate;
 static unsigned long saved_baudrate;
 static uint8_t       saved_data_bits;
 static uint8_t       saved_parity;
 static uint8_t       saved_stop_bits;
+#else
+#include <../mac/SerialPort.h>
+static speed_t saved_baudrate;
+static int     saved_data_bits;
+static int     saved_parity;
+static int     saved_stop_bits;
+#endif
 
 static bool passthrough = false;
 
@@ -43,7 +49,7 @@ static port_err_t serial_open(struct port_interface* port, struct port_options* 
     passthrough = strcmp(ops->device, "direct") != 0;
     if (passthrough) {
         char buf[256];
-        sprintf(buf, "$Uart/Passthrough=%s\n", ops->device);
+        snprintf(buf, sizeof(buf), "$Uart/Passthrough=%s\n", ops->device);
         h->write(buf);
         char*  bufp = buf;
         size_t len;
@@ -66,9 +72,15 @@ static port_err_t serial_open(struct port_interface* port, struct port_options* 
         fprintf(stderr, "Connecting to STM32 on %s\n", h->m_portName.c_str());
         h->getMode(saved_baudrate, saved_data_bits, saved_parity, saved_stop_bits);
         const char* mode      = ops->serial_mode;
+#ifdef _WIN32
         uint8_t     data_bits = mode[0] - '0';
         uint8_t     parity    = mode[1] == 'e' ? 2 : (mode[1] == 'o' ? 1 : 0);
         uint8_t     stop_bits = mode[2] - '0';
+#else
+        int         data_bits = mode[0] - '0';
+        int         parity    = mode[1] == 'e' ? 2 : (mode[1] == 'o' ? 1 : 0);
+        int         stop_bits = mode[2] - '0';
+#endif
 
         h->setMode(ops->baudRate, data_bits, parity, stop_bits);
     }

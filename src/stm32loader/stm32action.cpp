@@ -22,6 +22,18 @@
 #endif
 #include "../windows/FileDialog.h"
 
+//
+// Replace the include directive at line 996
+#ifdef _WIN32
+#include "../windows/SerialPort.h"
+#else
+#include "../mac/SerialPort.h"
+#endif
+
+#ifdef __APPLE__
+#include "../mac/FileDialog.h"
+#endif
+
 /* device globals */
 stm32_t*               stm    = NULL;
 void*                  p_st   = NULL;
@@ -993,7 +1005,6 @@ void show_help(char* name) {
 #include <vector>
 #include <cstring>
 #include "stm32action.h"
-#include <../windows/SerialPort.h>
 int stm32action(SerialPort& port, std::string cmd) {
     port_opts.extra = &port;
     std::vector<char*> argv_vector;
@@ -1011,3 +1022,16 @@ int stm32action(SerialPort& port, std::string cmd) {
     delete str;
     return ret;
 }
+
+#ifdef __APPLE__
+// Add macOS-specific implementation of getFileName function
+const char* getFileName(const char* filter, bool save) {
+    static std::string fileName;
+    if (save) {
+        showSaveFileDialog(fileName, filter, "Select File");
+    } else {
+        showOpenFileDialog(fileName, filter, "Select File");
+    }
+    return fileName.c_str();
+}
+#endif
